@@ -31,3 +31,15 @@ def load_price_data(
         raise ValueError(f"No data returned for ticker {ticker}")
 
     return data
+
+def load_multiple_assets(
+    tickers: list[str],
+    start: str = "2018-01-01",
+) -> pd.DataFrame:
+
+    data = yf.download(tickers, start=start)["Adj Close"]
+
+    if data.empty:
+        raise ValueError("No data returned")
+
+    return data
