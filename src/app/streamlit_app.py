@@ -16,9 +16,10 @@ from sentinel.reporting.report_generator import generate_risk_report
 from sentinel.ai.news_loader import (
     fetch_portfolio_headlines,
     build_headlines_text,
-    build_markdown_news_list,
+    build_markdown_news_list, 
+    classify_headline_bucket,
 )
-
+from datetime import datetime, timezone
 
 st.set_page_config(page_title="Sentinel Risk Intelligence", layout="wide")
 st.title("Sentinel Risk Intelligence")
@@ -172,7 +173,7 @@ with tabs[1]:
         st.dataframe(compare)
 
 # ----------------------------
-# Tab 3: AI Market Brief (Hybrid + Auto News + Caching)
+# Tab 3: AI Market Brief (Hybrid + Auto News + Caching + Polish)
 # ----------------------------
 with tabs[2]:
     st.subheader("AI Market Brief (Hybrid)")
@@ -195,49 +196,84 @@ with tabs[2]:
         return fetch_portfolio_headlines(list(tickers_tuple))
 
     st.markdown("### News Ingestion (Free RSS)")
+
     auto_news = st.checkbox(
         "Fetch latest news automatically (RSS, free)",
         value=True,
         key="ai_auto_news",
     )
 
+    max_items = st.slider("Max headlines to show", 5, 20, 12, 1, key="ai_max_items")
+
+    bucket_filter = st.radio(
+        "Headline filter",
+        ["All", "Macro", "Company (mentions tickers)"],
+        horizontal=True,
+        key="ai_bucket_filter",
+    )
+
     if "ai_news_items" not in st.session_state:
         st.session_state["ai_news_items"] = []
     if "ai_fetched_headlines" not in st.session_state:
         st.session_state["ai_fetched_headlines"] = ""
+    if "ai_news_last_updated" not in st.session_state:
+        st.session_state["ai_news_last_updated"] = None
 
-    col_a, col_b = st.columns([1, 1])
+    col_a, col_b, col_c = st.columns([1, 1, 1])
     with col_a:
         fetch_clicked = st.button("Fetch News", key="ai_fetch_news")
     with col_b:
-        clear_clicked = st.button("Clear Fetched News", key="ai_clear_news")
+        refresh_clicked = st.button("Force Refresh (bypass cache)", key="ai_force_refresh")
+    with col_c:
+        clear_clicked = st.button("Clear", key="ai_clear_news")
 
     if clear_clicked:
         st.session_state["ai_news_items"] = []
         st.session_state["ai_fetched_headlines"] = ""
+        st.session_state["ai_news_last_updated"] = None
         st.success("Fetched news cleared.")
 
-    if fetch_clicked and auto_news:
+    def _store_items(items):
+        st.session_state["ai_news_items"] = items
+        st.session_state["ai_fetched_headlines"] = build_headlines_text(items, max_items=max_items)
+        st.session_state["ai_news_last_updated"] = datetime.now(timezone.utc)
+
+    if (fetch_clicked or refresh_clicked) and auto_news:
         try:
-            items = cached_fetch_news(tuple(tickers))
-            st.session_state["ai_news_items"] = items
-
-            # For LLM prompt:
-            fetched_text = build_headlines_text(items, max_items=12)
-            st.session_state["ai_fetched_headlines"] = fetched_text
-
-            st.success(f"Fetched {len(items)} headlines (cached).")
+            if refresh_clicked:
+                # bypass cache intentionally
+                items = fetch_portfolio_headlines(tickers)
+            else:
+                items = cached_fetch_news(tuple(tickers))
+            _store_items(items)
+            st.success(f"Fetched {len(items)} headlines.")
         except Exception as e:
-            st.warning(
-                f"News fetch failed. You can still paste headlines manually. Reason: {e}"
-            )
+            st.warning(f"News fetch failed. You can still paste headlines manually. Reason: {e}")
 
     items = st.session_state.get("ai_news_items", [])
     fetched_block = st.session_state.get("ai_fetched_headlines", "").strip()
+    last_updated = st.session_state.get("ai_news_last_updated")
+
+    if last_updated:
+        # show local-friendly time (still UTC stored)
+        st.caption(f"Last updated: {last_updated.strftime('%Y-%m-%d %H:%M:%S')} UTC")
 
     if items:
+        # Apply macro/company filter
+        filtered = []
+        for it in items:
+            bucket = classify_headline_bucket(it.title, tickers)
+            if bucket_filter == "Macro" and bucket != "macro":
+                continue
+            if bucket_filter == "Company (mentions tickers)" and bucket != "company":
+                continue
+            filtered.append(it)
+
+        # Limit to max_items
+        filtered = filtered[:max_items]
+
         st.markdown("#### Latest Headlines (clickable)")
-        st.markdown(build_markdown_news_list(items, max_items=12))
+        st.markdown(build_markdown_news_list(filtered, max_items=max_items))
         st.caption("Tip: Use the links to quickly verify relevance and timing.")
     else:
         st.info("No fetched headlines yet. Click 'Fetch News' to load current headlines.")
