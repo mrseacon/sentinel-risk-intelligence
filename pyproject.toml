@@ -1,0 +1,20 @@
+[project]
+name = "sentinel-risk-intelligence"
+version = "0.1.0"
+description = "Advanced Quantitative & AI-Enhanced Financial Risk Platform"
+authors = [
+    { name = "Sean Pölka" }
+]
+requires-python = ">=3.11"
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 88
+select = ["E", "F", "I", "B", "UP"]
+ignore = []
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
