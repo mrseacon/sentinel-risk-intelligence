@@ -16,6 +16,7 @@ from sentinel.risk.risk_contribution import portfolio_risk_contribution
 from sentinel.ai.llm_client import LLMClient
 from sentinel.ai.market_context import build_market_context_prompt, parse_market_context
 from sentinel.ai.risk_adjustment import compute_ai_adjustment
+from sentinel.reporting.report_generator import generate_risk_report
 
 prices = load_multiple_assets(list(portfolio.keys()))
 
@@ -155,3 +156,20 @@ with tabs[1]:
         adj = compute_ai_adjustment(context)
         st.write("### AI Risk Adjustment (transparent)")
         st.write({"delta_score": adj.delta_score, "rationale": adj.rationale})
+
+report = generate_risk_report(
+    ticker,
+    vol,
+    var,
+    cvar,
+    score.score,
+)
+
+st.download_button(
+    "Download Risk Report",
+    report,
+    file_name="sentinel_risk_report.html",
+)
+st.subheader("Returns Distribution")
+
+st.bar_chart(returns)
