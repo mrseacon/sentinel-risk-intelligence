@@ -1,0 +1,23 @@
+# Core data science
+pandas
+numpy
+scipy
+matplotlib
+
+# Market data
+yfinance
+
+# Dashboard
+streamlit
+
+# AI (optional)
+openai
+python-dotenv
+
+# Testing
+pytest
+pytest-cov
+
+# Code quality
+ruff
+black
