@@ -13,6 +13,9 @@ from sentinel.portfolio.returns import (
 )
 from sentinel.risk.portfolio_risk import portfolio_volatility
 from sentinel.risk.risk_contribution import portfolio_risk_contribution
+from sentinel.ai.llm_client import LLMClient
+from sentinel.ai.market_context import build_market_context_prompt, parse_market_context
+from sentinel.ai.risk_adjustment import compute_ai_adjustment
 
 prices = load_multiple_assets(list(portfolio.keys()))
 
@@ -81,3 +84,74 @@ rc = portfolio_risk_contribution(returns, portfolio)
 st.subheader("Risk Contribution")
 
 st.bar_chart(rc)
+
+tabs = st.tabs(["Quant Overview", "AI Market Brief"])
+
+with tabs[1]:
+    st.subheader("AI Market Brief (Hybrid)")
+    st.caption("Runs without API key in manual mode. If OPENAI_API_KEY is set, it will generate automatically.")
+
+    portfolio_tickers = ["AAPL", "MSFT", "SPY"]  # replace with your actual portfolio keys
+    st.write("Portfolio tickers:", ", ".join(portfolio_tickers))
+
+    manual_headlines = st.text_area(
+        "Paste market headlines / notes (manual mode fallback)",
+        value="Example: Fed hints at higher rates; tech stocks volatile; oil prices rise.",
+        height=140,
+    )
+
+    client = LLMClient()
+
+    use_llm = st.checkbox(
+        "Use LLM (requires OPENAI_API_KEY + openai package)", value=False
+    )
+
+    if st.button("Generate Market Brief"):
+        if use_llm:
+            try:
+                prompt = build_market_context_prompt(manual_headlines, portfolio_tickers)
+                resp = client.generate(prompt)
+                context = parse_market_context(resp.text)
+                st.success(f"Generated via {resp.provider}")
+            except Exception as e:
+                st.warning(f"LLM mode failed, falling back to manual parsing. Reason: {e}")
+                # Manual fallback: simple default context
+                context = None
+        else:
+            context = None
+
+        if context is None:
+            st.info("Manual mode: showing your headlines as context bullets.")
+            context = parse_market_context(
+                """
+                {
+                  "bullets": [
+                    "Manual mode: pasted headlines were used as-is.",
+                    "Add OPENAI_API_KEY for automated summarization.",
+                    "Ensure headlines are relevant to your holdings.",
+                    "Use 3-10 short headlines for best results.",
+                    "Optional: paste macro + sector + company-level items."
+                  ],
+                  "classification": "Mixed",
+                  "sentiment": 0,
+                  "confidence": 0.3
+                }
+                """.strip()
+            )
+
+        st.write("### Key Points")
+        for b in context.bullets:
+            st.write(f"- {b}")
+
+        st.write("### Signal")
+        st.write(
+            {
+                "classification": context.classification,
+                "sentiment": context.sentiment,
+                "confidence": round(context.confidence, 2),
+            }
+        )
+
+        adj = compute_ai_adjustment(context)
+        st.write("### AI Risk Adjustment (transparent)")
+        st.write({"delta_score": adj.delta_score, "rationale": adj.rationale})
