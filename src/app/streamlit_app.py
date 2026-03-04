@@ -6,6 +6,20 @@ from sentinel.risk.metrics import annualized_volatility, max_drawdown
 from sentinel.risk.var import historical_var, historical_cvar
 from sentinel.risk.stress import apply_market_shock
 from sentinel.risk.scoring import compute_risk_score
+from sentinel.data.loader import load_multiple_assets
+from sentinel.portfolio.returns import (
+    calculate_asset_returns,
+    portfolio_returns,
+)
+from sentinel.risk.portfolio_risk import portfolio_volatility
+
+prices = load_multiple_assets(list(portfolio.keys()))
+
+returns = calculate_asset_returns(prices)
+
+port_ret = portfolio_returns(returns, portfolio)
+
+vol = portfolio_volatility(returns, portfolio)
 
 st.set_page_config(page_title="Sentinel Risk Intelligence", layout="wide")
 st.title("Sentinel Risk Intelligence")
@@ -55,3 +69,9 @@ if st.button("Run Analysis"):
             "pnl_pct": f"{stress.pnl_pct:.2%}",
         }
     )
+
+portfolio = {
+    "AAPL": 0.4,
+    "MSFT": 0.3,
+    "SPY": 0.3,
+}
