@@ -21,3 +21,6 @@ pytest-cov
 # Code quality
 ruff
 black
+
+requests
+feedparser
