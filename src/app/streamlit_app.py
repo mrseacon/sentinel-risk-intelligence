@@ -1,17 +1,24 @@
 import streamlit as st
 
-st.set_page_config(page_title="Sentinel Risk Intelligence", layout="wide")
+from sentinel.data.loader import load_price_data
+from sentinel.portfolio.portfolio import calculate_returns
+from sentinel.risk.metrics import annualized_volatility
+from sentinel.risk.var import historical_var
 
 st.title("Sentinel Risk Intelligence")
-st.subheader("Advanced Quantitative & AI-Enhanced Financial Risk Platform")
 
-st.markdown("""
-This platform provides:
+ticker = st.text_input("Ticker", "AAPL")
 
-- Quantitative risk metrics (Volatility, VaR, CVaR)
-- Stress testing and scenario analysis
-- Explainable risk scoring
-- AI-enhanced market context integration
-""")
+if st.button("Run Analysis"):
 
-st.info("Sprint 1: Risk Engine Core under development.")
+    data = load_price_data(ticker)
+
+    returns = calculate_returns(data["Adj Close"])
+
+    vol = annualized_volatility(returns)
+
+    var = historical_var(returns)
+
+    st.metric("Annualized Volatility", f"{vol:.2%}")
+
+    st.metric("Historical VaR (95%)", f"{var:.2%}")
