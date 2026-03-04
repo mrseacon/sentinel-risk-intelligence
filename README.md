@@ -1,29 +1,27 @@
 # Sentinel Risk Intelligence
 
-Sentinel Risk Intelligence is an advanced quantitative and AI-enhanced financial risk platform designed to provide explainable, institutional-grade portfolio risk analytics.
+AI-Enhanced Quantitative Portfolio Risk Platform
 
-## Vision
+## Features
 
-To bridge quantitative finance and artificial intelligence in a modular, transparent and decision-support oriented architecture.
+- Portfolio Risk Analytics
+- Value-at-Risk and CVaR
+- Stress Testing
+- Risk Contribution Analysis
+- Diversification Metrics
+- AI Market Risk Brief
+- Executive Risk Reports
 
-## Core Capabilities (Planned)
+## Tech Stack
 
-- Volatility, drawdown and beta analysis
-- Historical, parametric and Monte Carlo VaR
-- Conditional Value-at-Risk (CVaR)
-- Stress testing and scenario analysis
-- Explainable portfolio risk scoring
-- AI-enhanced market risk summaries
-- Automated executive risk reports
+Python, Pandas, NumPy, SciPy, Streamlit
 
 ## Architecture
 
-The system is built using a modular, layered architecture separating:
+See docs/architecture.md
 
-- Data ingestion
-- Portfolio modeling
-- Risk analytics
-- AI augmentation
-- Reporting interface
+## Running the Application
 
-See `/docs/architecture.md` for details.
+pip install -r requirements.txt
+
+streamlit run src/app/streamlit_app.py
