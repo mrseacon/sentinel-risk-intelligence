@@ -134,3 +134,13 @@ def build_markdown_news_list(items: Iterable[NewsItem], max_items: int = 10) -> 
             md_lines.append(f"{i}. {title} — *{source}*")
 
     return "\n".join(md_lines).strip()
+
+def classify_headline_bucket(title: str, tickers: list[str]) -> str:
+    """
+    Very lightweight classifier for UI filtering.
+    Returns: "macro" or "company"
+    """
+    t = title.upper()
+    if any(sym.upper() in t for sym in tickers):
+        return "company"
+    return "macro"
