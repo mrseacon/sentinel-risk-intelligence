@@ -12,6 +12,7 @@ from sentinel.portfolio.returns import (
     portfolio_returns,
 )
 from sentinel.risk.portfolio_risk import portfolio_volatility
+from sentinel.risk.risk_contribution import portfolio_risk_contribution
 
 prices = load_multiple_assets(list(portfolio.keys()))
 
@@ -75,3 +76,8 @@ portfolio = {
     "MSFT": 0.3,
     "SPY": 0.3,
 }
+rc = portfolio_risk_contribution(returns, portfolio)
+
+st.subheader("Risk Contribution")
+
+st.bar_chart(rc)
