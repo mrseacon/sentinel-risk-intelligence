@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import pytest
 
 from sentinel.risk.var import historical_cvar, historical_var
 from sentinel.risk.scoring import compute_risk_score
@@ -27,4 +28,4 @@ def test_stress_market_shock():
     prices = pd.Series([100, 101, 99, 105])
     res = apply_market_shock(prices, -0.10)
     assert res.scenario.startswith("Market shock")
-    assert res.pnl_pct == -0.10
+    assert res.pnl_pct == pytest.approx(-0.10, abs=1e-12)
