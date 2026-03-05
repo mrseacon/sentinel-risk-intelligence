@@ -118,8 +118,8 @@ with tabs[1]:
     st.subheader("Portfolio Risk Analysis")
 
     st.caption(
-    'Edit tickers/weights below (JSON format). Example: {"AAPL": 0.4, '
-    '"MSFT": 0.3, "SPY": 0.3}'
+        'Edit tickers/weights below (JSON format). Example: {"AAPL": 0.4, '
+        '"MSFT": 0.3, "SPY": 0.3}'
     )
 
     portfolio_text = st.text_area(
@@ -265,7 +265,7 @@ with tabs[2]:
             st.warning(
                 "News fetch failed. You can still paste headlines manually. "
                 f"Reason: {e}"
-                )
+            )
 
     items = st.session_state.get("ai_news_items", [])
     fetched_block = st.session_state.get("ai_fetched_headlines", "").strip()
@@ -333,8 +333,7 @@ with tabs[2]:
                 st.warning(f"LLM mode failed, using manual fallback. Reason: {e}")
 
         if context is None:
-            context = parse_market_context(
-                """
+            context = parse_market_context("""
                 {
                   "bullets": [
                     "Manual mode: headlines were used without LLM summarization.",
@@ -348,8 +347,7 @@ with tabs[2]:
                   "sentiment": 0,
                   "confidence": 0.3
                 }
-                """.strip()
-            )
+                """.strip())
             st.info("Manual fallback context used.")
 
         st.write("### Key Points")

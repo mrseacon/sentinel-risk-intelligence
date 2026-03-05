@@ -82,8 +82,8 @@ def load_multiple_assets(
             prices = data["Close"]
         else:
             raise KeyError(
-            "Neither 'Adj Close' nor 'Close' found in columns: "
-            f"{list(data.columns)}"
+                "Neither 'Adj Close' nor 'Close' found in columns: "
+                f"{list(data.columns)}"
             )
 
         # If single ticker, prices may be a Series -> convert to DataFrame
