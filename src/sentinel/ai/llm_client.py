@@ -17,7 +17,9 @@ class LLMResponse:
 class LLMClient:
     """
     Hybrid LLM client.
-    - If OPENAI_API_KEY is available and openai package is installed, it can call OpenAI.
+
+    - If OPENAI_API_KEY is available and the OpenAI package is installed,
+      it can call OpenAI.
     - Otherwise, it falls back to a manual mode (user-provided input).
     """
 

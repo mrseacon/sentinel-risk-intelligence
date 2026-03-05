@@ -18,7 +18,8 @@ def build_market_context_prompt(headlines: str, portfolio_tickers: list[str]) ->
     return f"""
 You are an institutional risk analyst.
 
-Given the following market headlines, produce a compact market risk brief relevant to this portfolio: {tickers}.
+Given the following market headlines, produce a compact market risk brief
+relevant to this portfolio: {tickers}.
 
 Return STRICT JSON with the following schema:
 {{

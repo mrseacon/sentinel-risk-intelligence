@@ -118,7 +118,8 @@ with tabs[1]:
     st.subheader("Portfolio Risk Analysis")
 
     st.caption(
-        'Edit tickers/weights below (JSON format). Example: {"AAPL": 0.4, "MSFT": 0.3, "SPY": 0.3}'
+    'Edit tickers/weights below (JSON format). Example: {"AAPL": 0.4, '
+    '"MSFT": 0.3, "SPY": 0.3}'
     )
 
     portfolio_text = st.text_area(
@@ -262,8 +263,9 @@ with tabs[2]:
             st.success(f"Fetched {len(items)} headlines.")
         except Exception as e:
             st.warning(
-                f"News fetch failed. You can still paste headlines manually. Reason: {e}"
-            )
+                "News fetch failed. You can still paste headlines manually. "
+                f"Reason: {e}"
+                )
 
     items = st.session_state.get("ai_news_items", [])
     fetched_block = st.session_state.get("ai_fetched_headlines", "").strip()
@@ -337,7 +339,8 @@ with tabs[2]:
                   "bullets": [
                     "Manual mode: headlines were used without LLM summarization.",
                     "Add OPENAI_API_KEY to enable automated market risk briefs.",
-                    "Include macro + sector + company-level headlines for best results.",
+                    "Include macro + sector + company-level headlines "
+                    "for best results.",
                     "Keep headlines short and relevant to your holdings.",
                     "Use this brief as qualitative context, not as a trading signal."
                   ],
