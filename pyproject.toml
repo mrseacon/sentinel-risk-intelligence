@@ -1,20 +1,24 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "sentinel-risk-intelligence"
 version = "0.1.0"
-description = "Advanced Quantitative & AI-Enhanced Financial Risk Platform"
-authors = [
-    { name = "Sean Pölka" }
-]
+description = "AI-Enhanced Quantitative Portfolio Risk Platform"
+readme = "README.md"
 requires-python = ">=3.11"
+dependencies = []
 
-[tool.black]
-line-length = 88
-target-version = ["py311"]
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.ruff]
 line-length = 88
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
 ignore = []
-
-[tool.pytest.ini_options]
-pythonpath = ["src"]
