@@ -1,5 +1,7 @@
-import pandas as pd
 from dataclasses import dataclass
+
+import pandas as pd
+
 
 def calculate_returns(price_series: pd.Series) -> pd.Series:
     """
@@ -17,6 +19,7 @@ def calculate_returns(price_series: pd.Series) -> pd.Series:
     returns = price_series.pct_change().dropna()
 
     return returns
+
 
 @dataclass
 class Portfolio:

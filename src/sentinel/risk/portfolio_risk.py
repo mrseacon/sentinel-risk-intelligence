@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 
-
 TRADING_DAYS = 252
 
 
@@ -17,6 +16,7 @@ def portfolio_volatility(
     port_var = w.T @ cov_matrix @ w
 
     return float(np.sqrt(port_var) * np.sqrt(TRADING_DAYS))
+
 
 def portfolio_var(
     portfolio_returns,

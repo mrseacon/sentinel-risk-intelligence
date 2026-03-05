@@ -2,9 +2,9 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from sentinel.risk.var import historical_cvar, historical_var
 from sentinel.risk.scoring import compute_risk_score
 from sentinel.risk.stress import apply_market_shock
+from sentinel.risk.var import historical_cvar, historical_var
 
 
 def test_historical_cvar_is_worse_than_var_for_normal_returns():

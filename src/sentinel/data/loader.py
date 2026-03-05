@@ -32,6 +32,7 @@ def load_price_data(
 
     return data
 
+
 def load_multiple_assets(
     tickers: list[str],
     start: str = "2018-01-01",
@@ -49,7 +50,7 @@ def load_multiple_assets(
         tickers,
         start=start,
         end=end,
-        auto_adjust=False,   # ensures Adj Close is available when provided by Yahoo
+        auto_adjust=False,  # ensures Adj Close is available when provided by Yahoo
         progress=False,
         group_by="column",
     )
@@ -69,7 +70,9 @@ def load_multiple_assets(
         elif "Close" in level0:
             price_key = "Close"
         else:
-            raise KeyError(f"Neither 'Adj Close' nor 'Close' found in columns: {sorted(level0)}")
+            raise KeyError(
+                f"Neither 'Adj Close' nor 'Close' found in columns: {sorted(level0)}"
+            )
 
         prices = data[price_key]
     else:
@@ -78,7 +81,9 @@ def load_multiple_assets(
         elif "Close" in data.columns:
             prices = data["Close"]
         else:
-            raise KeyError(f"Neither 'Adj Close' nor 'Close' found in columns: {list(data.columns)}")
+            raise KeyError(
+                f"Neither 'Adj Close' nor 'Close' found in columns: {list(data.columns)}"
+            )
 
         # If single ticker, prices may be a Series -> convert to DataFrame
         if isinstance(prices, pd.Series):

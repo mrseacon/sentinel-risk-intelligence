@@ -1,25 +1,26 @@
+from datetime import UTC, datetime
+
 import streamlit as st
 
-from sentinel.data.loader import load_price_data, load_multiple_assets
+from sentinel.ai.llm_client import LLMClient
+from sentinel.ai.market_context import build_market_context_prompt, parse_market_context
+from sentinel.ai.news_loader import (
+    build_headlines_text,
+    build_markdown_news_list,
+    classify_headline_bucket,
+    fetch_portfolio_headlines,
+)
+from sentinel.ai.risk_adjustment import compute_ai_adjustment
+from sentinel.data.loader import load_multiple_assets, load_price_data
 from sentinel.portfolio.portfolio import calculate_returns
 from sentinel.portfolio.returns import calculate_asset_returns, portfolio_returns
+from sentinel.reporting.report_generator import generate_risk_report
 from sentinel.risk.metrics import annualized_volatility, max_drawdown
 from sentinel.risk.portfolio_risk import portfolio_volatility
 from sentinel.risk.risk_contribution import portfolio_risk_contribution
 from sentinel.risk.scoring import compute_risk_score
 from sentinel.risk.stress import apply_market_shock
-from sentinel.risk.var import historical_var, historical_cvar
-from sentinel.ai.llm_client import LLMClient
-from sentinel.ai.market_context import build_market_context_prompt, parse_market_context
-from sentinel.ai.risk_adjustment import compute_ai_adjustment
-from sentinel.reporting.report_generator import generate_risk_report
-from sentinel.ai.news_loader import (
-    fetch_portfolio_headlines,
-    build_headlines_text,
-    build_markdown_news_list, 
-    classify_headline_bucket,
-)
-from datetime import datetime, timezone
+from sentinel.risk.var import historical_cvar, historical_var
 
 st.set_page_config(page_title="Sentinel Risk Intelligence", layout="wide")
 st.title("Sentinel Risk Intelligence")
@@ -34,7 +35,9 @@ with tabs[0]:
     st.subheader("Single Asset Risk Analysis")
 
     ticker = st.text_input("Ticker", "AAPL", key="single_ticker")
-    confidence = st.slider("Confidence level", 0.90, 0.99, 0.95, 0.01, key="single_conf")
+    confidence = st.slider(
+        "Confidence level", 0.90, 0.99, 0.95, 0.01, key="single_conf"
+    )
 
     run_single = st.button("Run Single Asset Analysis", key="run_single")
 
@@ -64,8 +67,8 @@ with tabs[0]:
         col1, col2, col3, col4 = st.columns(4)
         col1.metric("Annualized Volatility", f"{vol:.2%}")
         col2.metric("Max Drawdown", f"{dd:.2%}")
-        col3.metric(f"Historical VaR ({int(confidence*100)}%)", f"{var_:.2%}")
-        col4.metric(f"Historical CVaR ({int(confidence*100)}%)", f"{cvar_:.2%}")
+        col3.metric(f"Historical VaR ({int(confidence * 100)}%)", f"{var_:.2%}")
+        col4.metric(f"Historical CVaR ({int(confidence * 100)}%)", f"{cvar_:.2%}")
 
         st.subheader("Risk Score")
         st.metric("Score (0–100)", f"{score.score} ({score.label})")
@@ -114,7 +117,9 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("Portfolio Risk Analysis")
 
-    st.caption("Edit tickers/weights below (JSON format). Example: {\"AAPL\": 0.4, \"MSFT\": 0.3, \"SPY\": 0.3}")
+    st.caption(
+        'Edit tickers/weights below (JSON format). Example: {"AAPL": 0.4, "MSFT": 0.3, "SPY": 0.3}'
+    )
 
     portfolio_text = st.text_area(
         "Portfolio weights (JSON)",
@@ -123,7 +128,9 @@ with tabs[1]:
         key="portfolio_json",
     )
 
-    start_date = st.text_input("Start date (YYYY-MM-DD)", "2018-01-01", key="portfolio_start")
+    start_date = st.text_input(
+        "Start date (YYYY-MM-DD)", "2018-01-01", key="portfolio_start"
+    )
 
     run_portfolio = st.button("Run Portfolio Analysis", key="run_portfolio")
 
@@ -133,7 +140,9 @@ with tabs[1]:
         try:
             portfolio = json.loads(portfolio_text)
             if not isinstance(portfolio, dict) or len(portfolio) < 2:
-                raise ValueError("Portfolio must be a JSON object with at least 2 tickers.")
+                raise ValueError(
+                    "Portfolio must be a JSON object with at least 2 tickers."
+                )
             portfolio = {str(k).upper(): float(v) for k, v in portfolio.items()}
         except Exception as e:
             st.error(f"Invalid portfolio JSON. Please fix and retry. Details: {e}")
@@ -223,7 +232,9 @@ with tabs[2]:
     with col_a:
         fetch_clicked = st.button("Fetch News", key="ai_fetch_news")
     with col_b:
-        refresh_clicked = st.button("Force Refresh (bypass cache)", key="ai_force_refresh")
+        refresh_clicked = st.button(
+            "Force Refresh (bypass cache)", key="ai_force_refresh"
+        )
     with col_c:
         clear_clicked = st.button("Clear", key="ai_clear_news")
 
@@ -235,8 +246,10 @@ with tabs[2]:
 
     def _store_items(items):
         st.session_state["ai_news_items"] = items
-        st.session_state["ai_fetched_headlines"] = build_headlines_text(items, max_items=max_items)
-        st.session_state["ai_news_last_updated"] = datetime.now(timezone.utc)
+        st.session_state["ai_fetched_headlines"] = build_headlines_text(
+            items, max_items=max_items
+        )
+        st.session_state["ai_news_last_updated"] = datetime.now(UTC)
 
     if (fetch_clicked or refresh_clicked) and auto_news:
         try:
@@ -248,7 +261,9 @@ with tabs[2]:
             _store_items(items)
             st.success(f"Fetched {len(items)} headlines.")
         except Exception as e:
-            st.warning(f"News fetch failed. You can still paste headlines manually. Reason: {e}")
+            st.warning(
+                f"News fetch failed. You can still paste headlines manually. Reason: {e}"
+            )
 
     items = st.session_state.get("ai_news_items", [])
     fetched_block = st.session_state.get("ai_fetched_headlines", "").strip()
@@ -276,7 +291,9 @@ with tabs[2]:
         st.markdown(build_markdown_news_list(filtered, max_items=max_items))
         st.caption("Tip: Use the links to quickly verify relevance and timing.")
     else:
-        st.info("No fetched headlines yet. Click 'Fetch News' to load current headlines.")
+        st.info(
+            "No fetched headlines yet. Click 'Fetch News' to load current headlines."
+        )
 
     # --- Manual headlines ---
     st.markdown("### Manual Headlines / Notes")

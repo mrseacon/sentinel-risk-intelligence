@@ -1,4 +1,3 @@
-import pandas as pd
 from datetime import datetime
 
 
@@ -48,6 +47,7 @@ def generate_risk_report(
     """
 
     return html
+
 
 def save_report(html, filename="risk_report.html"):
 

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from turtle import st
-from typing import Iterable
 import time
 import urllib.parse
+from collections.abc import Iterable
+from dataclasses import dataclass
 
 import feedparser
 import requests
@@ -119,6 +118,7 @@ def fetch_portfolio_headlines(
 
     return deduped[: min(25, len(deduped))]
 
+
 def build_markdown_news_list(items: Iterable[NewsItem], max_items: int = 10) -> str:
     """
     Create a markdown list with clickable links for Streamlit.
@@ -134,6 +134,7 @@ def build_markdown_news_list(items: Iterable[NewsItem], max_items: int = 10) -> 
             md_lines.append(f"{i}. {title} — *{source}*")
 
     return "\n".join(md_lines).strip()
+
 
 def classify_headline_bucket(title: str, tickers: list[str]) -> str:
     """
