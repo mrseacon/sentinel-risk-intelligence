@@ -59,9 +59,9 @@ def portfolio_dict_from_dataframe(df: pd.DataFrame) -> dict[str, float]:
     """
     grouped = df.groupby("ticker", as_index=False)["weight"].sum()
     return dict(
-    zip(
-        grouped["ticker"],
-        grouped["weight"],
-        strict=False,
-       )
+        zip(
+            grouped["ticker"],
+            grouped["weight"],
+            strict=False,
+        )
     )
