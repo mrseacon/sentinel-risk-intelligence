@@ -4,12 +4,13 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize
 
-
 TRADING_DAYS = 252
 
 
 def _portfolio_volatility(weights: np.ndarray, cov_matrix: pd.DataFrame) -> float:
-    return float(np.sqrt(weights.T @ cov_matrix.values @ weights) * np.sqrt(TRADING_DAYS))
+    return float(
+        np.sqrt(weights.T @ cov_matrix.values @ weights) * np.sqrt(TRADING_DAYS)
+    )
 
 
 def _portfolio_return(weights: np.ndarray, mean_returns: pd.Series) -> float:

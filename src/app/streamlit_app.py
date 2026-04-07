@@ -1,5 +1,7 @@
+import json
 from datetime import UTC, datetime
 
+import pandas as pd
 import streamlit as st
 
 from sentinel.ai.llm_client import LLMClient
@@ -138,9 +140,6 @@ with tabs[1]:
     run_portfolio = st.button("Run Portfolio Analysis", key="run_portfolio")
 
     if run_portfolio:
-        import json
-        import pandas as pd
-
         try:
             portfolio = json.loads(portfolio_text)
             if not isinstance(portfolio, dict) or len(portfolio) < 2:
@@ -184,9 +183,7 @@ with tabs[1]:
         w = pd.Series(portfolio)
         w = w / w.sum()
 
-        compare = pd.DataFrame(
-            {"weight": w, "risk_contribution": rc}
-        ).fillna(0.0)
+        compare = pd.DataFrame({"weight": w, "risk_contribution": rc}).fillna(0.0)
         st.dataframe(compare)
 
     # ----------------------------
@@ -240,7 +237,7 @@ with tabs[1]:
 
             except Exception as e:
                 st.error(f"Optimization failed: {e}")
-    
+
 # ----------------------------
 # Tab 3: AI Market Brief (Hybrid + Auto News + Caching + Polish)
 # ----------------------------
@@ -250,6 +247,12 @@ with tabs[2]:
         "Works without API key in manual mode. "
         "Optionally fetches latest headlines via free RSS (cached). "
         "With OPENAI_API_KEY + openai installed, it can generate automatically."
+    )
+
+    from sentinel.ai.risk_brief import (
+        RiskBrief,
+        build_risk_brief_prompt,
+        parse_risk_brief,
     )
 
     portfolio_tickers = st.text_input(
@@ -293,7 +296,8 @@ with tabs[2]:
         fetch_clicked = st.button("Fetch News", key="ai_fetch_news")
     with col_b:
         refresh_clicked = st.button(
-            "Force Refresh (bypass cache)", key="ai_force_refresh"
+            "Force Refresh (bypass cache)",
+            key="ai_force_refresh",
         )
     with col_c:
         clear_clicked = st.button("Clear", key="ai_clear_news")
@@ -307,17 +311,18 @@ with tabs[2]:
     def _store_items(items):
         st.session_state["ai_news_items"] = items
         st.session_state["ai_fetched_headlines"] = build_headlines_text(
-            items, max_items=max_items
+            items,
+            max_items=max_items,
         )
         st.session_state["ai_news_last_updated"] = datetime.now(UTC)
 
     if (fetch_clicked or refresh_clicked) and auto_news:
         try:
             if refresh_clicked:
-                # bypass cache intentionally
                 items = fetch_portfolio_headlines(tickers)
             else:
                 items = cached_fetch_news(tuple(tickers))
+
             _store_items(items)
             st.success(f"Fetched {len(items)} headlines.")
         except Exception as e:
@@ -331,11 +336,9 @@ with tabs[2]:
     last_updated = st.session_state.get("ai_news_last_updated")
 
     if last_updated:
-        # show local-friendly time (still UTC stored)
         st.caption(f"Last updated: {last_updated.strftime('%Y-%m-%d %H:%M:%S')} UTC")
 
     if items:
-        # Apply macro/company filter
         filtered = []
         for it in items:
             bucket = classify_headline_bucket(it.title, tickers)
@@ -345,7 +348,6 @@ with tabs[2]:
                 continue
             filtered.append(it)
 
-        # Limit to max_items
         filtered = filtered[:max_items]
 
         st.markdown("#### Latest Headlines (clickable)")
@@ -365,23 +367,22 @@ with tabs[2]:
         key="ai_headlines",
     )
 
-    # Combine auto + manual into one prompt input
     combined_headlines = manual_headlines.strip()
     if fetched_block:
         combined_headlines = (fetched_block + "\n\n" + combined_headlines).strip()
 
-    # --- LLM toggle ---
-    use_llm = st.checkbox(
-        "Use LLM (requires OPENAI_API_KEY)",
+    # --- LLM toggle for market brief ---
+    use_llm_market = st.checkbox(
+        "Use LLM for Market Brief (requires OPENAI_API_KEY)",
         value=False,
-        key="ai_use_llm",
+        key="ai_use_llm_market",
     )
 
     st.markdown("### Generate Market Brief")
     if st.button("Generate Market Brief", key="ai_generate"):
         context = None
 
-        if use_llm:
+        if use_llm_market:
             try:
                 client = LLMClient()
                 prompt = build_market_context_prompt(combined_headlines, tickers)
@@ -397,8 +398,10 @@ with tabs[2]:
                   "bullets": [
                     "Manual mode: headlines were used without LLM summarization.",
                     "Add OPENAI_API_KEY to enable automated market risk briefs.",
+                (
                     "Include macro + sector + company-level headlines "
-                    "for best results.",
+                     "for best results.",
+                )                          
                     "Keep headlines short and relevant to your holdings.",
                     "Use this brief as qualitative context, not as a trading signal."
                   ],
@@ -424,4 +427,91 @@ with tabs[2]:
 
         adj = compute_ai_adjustment(context)
         st.write("### AI Risk Adjustment (transparent)")
-        st.write({"delta_score": adj.delta_score, "rationale": adj.rationale})
+        st.write(
+            {
+                "delta_score": adj.delta_score,
+                "rationale": adj.rationale,
+            }
+        )
+
+    # ----------------------------
+    # AI Executive Risk Brief
+    # ----------------------------
+    st.markdown("## Executive Risk Brief")
+
+    portfolio = st.session_state.get("portfolio")
+    returns_df = st.session_state.get("returns_df")
+
+    if portfolio is None or returns_df is None:
+        st.info("Run portfolio analysis first.")
+    else:
+        use_llm_brief = st.checkbox(
+            "Use LLM for Executive Risk Brief (requires OPENAI_API_KEY)",
+            value=False,
+            key="ai_use_llm_brief",
+        )
+
+        generate_brief = st.button(
+            "Generate Executive Risk Brief",
+            key="ai_generate_brief",
+        )
+
+        if generate_brief:
+            try:
+
+                port_returns = portfolio_returns(returns_df, portfolio)
+                vol = annualized_volatility(port_returns)
+                var = historical_var(port_returns, 0.95)
+                cvar = historical_cvar(port_returns, 0.95)
+
+                context_text = combined_headlines
+                brief = None
+
+                if use_llm_brief:
+                    try:
+                        client = LLMClient()
+                        prompt = build_risk_brief_prompt(
+                            portfolio=portfolio,
+                            volatility=vol,
+                            var=var,
+                            cvar=cvar,
+                            context_text=context_text,
+                        )
+                        resp = client.generate(prompt)
+                        brief = parse_risk_brief(resp.text)
+                        st.success(f"Generated via {resp.provider}")
+                    except Exception as e:
+                        st.warning(f"LLM failed, using fallback. Reason: {e}")
+
+                if brief is None:
+                    brief = RiskBrief(
+                        summary=(
+                            "The portfolio shows a moderate risk profile with "
+                            "meaningful exposure to equity market volatility."
+                        ),
+                        key_risks=[
+                            "Concentration in growth and technology-related assets",
+                            "Sensitivity to macroeconomic and interest rate changes",
+                            "Elevated downside risk during periods of market stress",
+                        ],
+                        interpretation=(
+                            "The current portfolio remains manageable under normal "
+                            "market conditions, but downside exposure could increase "
+                            "during volatility spikes. Additional diversification or "
+                            "rebalancing may improve resilience."
+                        ),
+                    )
+                    st.info("Fallback mode: deterministic risk brief.")
+
+                st.write("### Summary")
+                st.write(brief.summary)
+
+                st.write("### Key Risks")
+                for risk in brief.key_risks:
+                    st.write(f"- {risk}")
+
+                st.write("### Interpretation")
+                st.write(brief.interpretation)
+
+            except Exception as e:
+                st.error(f"Failed to generate risk brief: {e}")
