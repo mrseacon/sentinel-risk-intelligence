@@ -1,3 +1,5 @@
+-e .
+
 # Core data science
 pandas
 numpy
