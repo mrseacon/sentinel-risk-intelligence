@@ -16,6 +16,11 @@ from sentinel.ai.risk_adjustment import compute_ai_adjustment
 from sentinel.data.loader import load_multiple_assets, load_price_data
 from sentinel.portfolio.portfolio import calculate_returns
 from sentinel.portfolio.returns import calculate_asset_returns, portfolio_returns
+from sentinel.portfolio.upload import (
+    normalize_portfolio_weights,
+    parse_portfolio_csv,
+    portfolio_dict_from_dataframe,
+)
 from sentinel.reporting.report_generator import generate_risk_report
 from sentinel.risk.metrics import annualized_volatility, max_drawdown
 from sentinel.risk.portfolio_risk import portfolio_volatility
@@ -23,11 +28,6 @@ from sentinel.risk.risk_contribution import portfolio_risk_contribution
 from sentinel.risk.scoring import compute_risk_score
 from sentinel.risk.stress import apply_market_shock
 from sentinel.risk.var import historical_cvar, historical_var
-from sentinel.portfolio.upload import (
-    normalize_portfolio_weights,
-    parse_portfolio_csv,
-    portfolio_dict_from_dataframe,
-)
 
 st.set_page_config(page_title="Sentinel Risk Intelligence", layout="wide")
 st.title("Sentinel Risk Intelligence")
@@ -188,14 +188,10 @@ with tabs[1]:
                     "Portfolio must be a JSON object with at least 2 tickers."
                 )
 
-            portfolio = {
-                str(k).upper(): float(v) for k, v in portfolio.items()
-            }
+            portfolio = {str(k).upper(): float(v) for k, v in portfolio.items()}
 
         except Exception as e:
-            st.error(
-                f"Invalid portfolio JSON. Please fix and retry. Details: {e}"
-            )
+            st.error(f"Invalid portfolio JSON. Please fix and retry. Details: {e}")
             st.stop()
 
         tickers = list(portfolio.keys())
@@ -236,9 +232,7 @@ with tabs[1]:
         w = pd.Series(portfolio)
         w = w / w.sum()
 
-        compare = pd.DataFrame(
-            {"weight": w, "risk_contribution": rc}
-        ).fillna(0.0)
+        compare = pd.DataFrame({"weight": w, "risk_contribution": rc}).fillna(0.0)
 
         st.dataframe(compare)
 

@@ -4,7 +4,6 @@ from io import StringIO
 
 import pandas as pd
 
-
 REQUIRED_COLUMNS = {"ticker", "weight"}
 
 
@@ -22,9 +21,7 @@ def parse_portfolio_csv(file_bytes: bytes) -> pd.DataFrame:
 
     missing = REQUIRED_COLUMNS - set(df.columns)
     if missing:
-        raise ValueError(
-            f"Missing required columns: {', '.join(sorted(missing))}"
-        )
+        raise ValueError(f"Missing required columns: {', '.join(sorted(missing))}")
 
     df["ticker"] = df["ticker"].astype(str).str.strip().str.upper()
     df["weight"] = pd.to_numeric(df["weight"], errors="raise")
@@ -61,4 +58,10 @@ def portfolio_dict_from_dataframe(df: pd.DataFrame) -> dict[str, float]:
     Duplicate tickers are aggregated.
     """
     grouped = df.groupby("ticker", as_index=False)["weight"].sum()
-    return dict(zip(grouped["ticker"], grouped["weight"]))
+    return dict(
+    zip(
+        grouped["ticker"],
+        grouped["weight"],
+        strict=False,
+       )
+    )
