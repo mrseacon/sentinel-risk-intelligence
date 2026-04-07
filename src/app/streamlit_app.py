@@ -23,6 +23,11 @@ from sentinel.risk.risk_contribution import portfolio_risk_contribution
 from sentinel.risk.scoring import compute_risk_score
 from sentinel.risk.stress import apply_market_shock
 from sentinel.risk.var import historical_cvar, historical_var
+from sentinel.portfolio.upload import (
+    normalize_portfolio_weights,
+    parse_portfolio_csv,
+    portfolio_dict_from_dataframe,
+)
 
 st.set_page_config(page_title="Sentinel Risk Intelligence", layout="wide")
 st.title("Sentinel Risk Intelligence")
@@ -124,9 +129,41 @@ with tabs[1]:
         '"MSFT": 0.3, "SPY": 0.3}'
     )
 
+    # ----------------------------
+    # CSV Upload
+    # ----------------------------
+    st.markdown("### Portfolio Input")
+
+    uploaded_file = st.file_uploader(
+        "Upload portfolio CSV",
+        type=["csv"],
+        key="portfolio_csv_upload",
+    )
+
+    if uploaded_file is not None:
+        try:
+            uploaded_df = parse_portfolio_csv(uploaded_file.getvalue())
+            normalized_df = normalize_portfolio_weights(uploaded_df)
+            uploaded_portfolio = portfolio_dict_from_dataframe(normalized_df)
+
+            st.success("Portfolio CSV uploaded and validated successfully.")
+            st.write("#### Uploaded Portfolio Preview")
+            st.dataframe(normalized_df)
+
+            portfolio_text_default = str(uploaded_portfolio).replace("'", '"')
+
+        except Exception as e:
+            st.error(f"CSV upload failed: {e}")
+            portfolio_text_default = '{"AAPL": 0.4, "MSFT": 0.3, "SPY": 0.3}'
+    else:
+        portfolio_text_default = '{"AAPL": 0.4, "MSFT": 0.3, "SPY": 0.3}'
+
+    # ----------------------------
+    # Manual JSON Input
+    # ----------------------------
     portfolio_text = st.text_area(
         "Portfolio weights (JSON)",
-        value='{"AAPL": 0.4, "MSFT": 0.3, "SPY": 0.3}',
+        value=portfolio_text_default,
         height=90,
         key="portfolio_json",
     )
@@ -139,16 +176,26 @@ with tabs[1]:
 
     run_portfolio = st.button("Run Portfolio Analysis", key="run_portfolio")
 
+    # ----------------------------
+    # Portfolio Analysis
+    # ----------------------------
     if run_portfolio:
         try:
             portfolio = json.loads(portfolio_text)
+
             if not isinstance(portfolio, dict) or len(portfolio) < 2:
                 raise ValueError(
                     "Portfolio must be a JSON object with at least 2 tickers."
                 )
-            portfolio = {str(k).upper(): float(v) for k, v in portfolio.items()}
+
+            portfolio = {
+                str(k).upper(): float(v) for k, v in portfolio.items()
+            }
+
         except Exception as e:
-            st.error(f"Invalid portfolio JSON. Please fix and retry. Details: {e}")
+            st.error(
+                f"Invalid portfolio JSON. Please fix and retry. Details: {e}"
+            )
             st.stop()
 
         tickers = list(portfolio.keys())
@@ -161,11 +208,16 @@ with tabs[1]:
 
         rc = portfolio_risk_contribution(returns_df, portfolio)
 
+        # Save state for other tabs (AI, optimization etc.)
         st.session_state["portfolio"] = portfolio
         st.session_state["returns_df"] = returns_df
         st.session_state["rc"] = rc
 
+        # ----------------------------
+        # Output
+        # ----------------------------
         st.write("### Portfolio Summary")
+
         col1, col2 = st.columns(2)
         col1.metric("Portfolio Annualized Volatility", f"{port_vol:.2%}")
         col2.metric("Average Daily Return", f"{port_ret.mean():.3%}")
@@ -180,10 +232,14 @@ with tabs[1]:
         st.bar_chart(rc)
 
         st.write("### Weights vs Risk Contribution")
+
         w = pd.Series(portfolio)
         w = w / w.sum()
 
-        compare = pd.DataFrame({"weight": w, "risk_contribution": rc}).fillna(0.0)
+        compare = pd.DataFrame(
+            {"weight": w, "risk_contribution": rc}
+        ).fillna(0.0)
+
         st.dataframe(compare)
 
     # ----------------------------
