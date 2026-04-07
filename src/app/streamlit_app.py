@@ -130,13 +130,16 @@ with tabs[1]:
     )
 
     start_date = st.text_input(
-        "Start date (YYYY-MM-DD)", "2018-01-01", key="portfolio_start"
+        "Start date (YYYY-MM-DD)",
+        "2018-01-01",
+        key="portfolio_start",
     )
 
     run_portfolio = st.button("Run Portfolio Analysis", key="run_portfolio")
 
     if run_portfolio:
         import json
+        import pandas as pd
 
         try:
             portfolio = json.loads(portfolio_text)
@@ -157,6 +160,12 @@ with tabs[1]:
         port_ret = portfolio_returns(returns_df, portfolio)
         port_vol = portfolio_volatility(returns_df, portfolio)
 
+        rc = portfolio_risk_contribution(returns_df, portfolio)
+
+        st.session_state["portfolio"] = portfolio
+        st.session_state["returns_df"] = returns_df
+        st.session_state["rc"] = rc
+
         st.write("### Portfolio Summary")
         col1, col2 = st.columns(2)
         col1.metric("Portfolio Annualized Volatility", f"{port_vol:.2%}")
@@ -169,19 +178,69 @@ with tabs[1]:
         st.line_chart(prices_df)
 
         st.write("### Risk Contribution (Variance-based)")
-        rc = portfolio_risk_contribution(returns_df, portfolio)
         st.bar_chart(rc)
 
         st.write("### Weights vs Risk Contribution")
-        weights_series = st.session_state.get("weights_series")
-        # create a local weights series for display
-        import pandas as pd
-
         w = pd.Series(portfolio)
         w = w / w.sum()
-        compare = pd.DataFrame({"weight": w, "risk_contribution": rc}).fillna(0.0)
+
+        compare = pd.DataFrame(
+            {"weight": w, "risk_contribution": rc}
+        ).fillna(0.0)
         st.dataframe(compare)
 
+    # ----------------------------
+    # Portfolio Optimization
+    # ----------------------------
+    st.write("### Portfolio Optimization")
+
+    from sentinel.portfolio.optimization import (
+        optimize_max_sharpe,
+        optimize_min_variance,
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        run_min_var = st.button("Optimize Min Variance", key="run_min_var")
+
+    with col2:
+        run_max_sharpe = st.button("Optimize Max Sharpe", key="run_max_sharpe")
+
+    returns_df = st.session_state.get("returns_df")
+    portfolio = st.session_state.get("portfolio")
+
+    if returns_df is None or portfolio is None:
+        st.info("Run portfolio analysis first to enable optimization.")
+    else:
+        if run_min_var or run_max_sharpe:
+            try:
+                import pandas as pd
+
+                if run_min_var:
+                    opt_weights = optimize_min_variance(returns_df)
+                    label = "Min Variance"
+                else:
+                    opt_weights = optimize_max_sharpe(returns_df)
+                    label = "Max Sharpe"
+
+                current_weights = pd.Series(portfolio)
+                current_weights = current_weights / current_weights.sum()
+
+                compare_df = pd.DataFrame(
+                    {
+                        "Current": current_weights,
+                        "Optimized": opt_weights,
+                    }
+                ).fillna(0.0)
+
+                st.write(f"### {label} Portfolio Weights")
+                st.dataframe(compare_df)
+                st.bar_chart(compare_df)
+
+            except Exception as e:
+                st.error(f"Optimization failed: {e}")
+    
 # ----------------------------
 # Tab 3: AI Market Brief (Hybrid + Auto News + Caching + Polish)
 # ----------------------------
